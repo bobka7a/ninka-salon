@@ -404,24 +404,23 @@
     <form id="bookingForm">
       <div class="form-row">
         <div class="form-group"><label>Вашето име</label><input type="text" placeholder="Мария Иванова" required></div>
-        <div class="form-group"><label>Телефон</label><input type="tel" placeholder="088X XXX XXX" required></div>
+        <div class="form-group"><label>Телефон</label><input type="tel" id="phoneInput" pattern="[0-9]{10}" placeholder="0888123456" required></div>
       </div>
-      <div class="form-group"><label>Желана услуга</label><select required><option value="" disabled selected>Изберете услуга...</option><option>Подстригване</option><option>Боядисване</option><option>Кератинова терапия</option><option>Сватбена прическа</option><option>Трайна завивка</option><option>Маска и терапия</option></select></div>
+      <div class="form-group"><label>Желана услуга</label><select id="serviceSelect" required><option value="" disabled selected>Изберете услуга...</option><option value="Подстригване">Подстригване</option><option value="Боядисване">Боядисване</option><option value="Кератинова терапия">Кератинова терапия</option><option value="Сватбена прическа">Сватбена прическа</option><option value="Трайна завивка">Трайна завивка</option><option value="Маска и терапия">Маска и терапия</option></select></div>
       <div class="form-row">
         <div class="form-group"><label>Дата</label><input type="date" required></div>
-        <div class="form-group"><label>Час</label><input type="time" min="09:00" max="19:00" required></div>
+        <div class="form-group"><label>Свободни часове</label><select id="timeSelect" required disabled><option value="" selected>Първо изберете услуга и дата...</option></select></div>
       </div>
       <div class="form-group"><label>Бележки (по желание)</label><textarea placeholder="Допълнителни желания или въпроси..."></textarea></div>
-      <button type="submit" class="btn-submit">✨ Запази час</button>
+      <p id="slotsInfo" style="margin:-2px 0 16px; font-size:0.88rem; color:var(--light-text);">Изберете услуга и дата, за да видите свободните часове.</p>
+      <button type="submit" class="btn-submit">✨ Изпрати заявка за час</button>
     </form>
 
     <div class="form-success" id="formSuccess">
-      🌸 Ако Viber не се отвори автоматично, използвайте бутона по-долу.
-      <div style="margin-top:16px;">
-        <a id="openViberManual" class="btn-primary" href="#" style="display:inline-block;">Отвори във Viber</a>
-      </div>
+      🌸 Благодарим! Вашата заявка е приета успешно.<br><br>
+      <span id="confirmationDetails" style="display:block; font-weight:600; color:var(--brown);"></span>
+      <span style="display:block; margin-top:10px; font-size:0.92rem; color:var(--light-text);">Ще се свържем с вас скоро за окончателно потвърждение.</span>
     </div>
-  </div>
   </div>
 </section>
 
@@ -464,38 +463,98 @@
   reveals.forEach(el => observer.observe(el));
 
   const dateInput = document.querySelector('input[type="date"]');
+  const serviceSelect = document.getElementById('serviceSelect');
+  const timeSelect = document.getElementById('timeSelect');
+  const slotsInfo = document.getElementById('slotsInfo');
+  const bookingForm = document.getElementById('bookingForm');
+
+  const today = new Date();
   if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.min = today;
+    dateInput.min = today.toISOString().split('T')[0];
   }
 
-    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+  const serviceSlots = {
+    'Подстригване': ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'],
+    'Боядисване': ['09:00','11:30','14:00','16:30'],
+    'Кератинова терапия': ['10:00','13:30','16:30'],
+    'Сватбена прическа': ['09:00','12:30','16:00'],
+    'Трайна завивка': ['09:30','12:30','15:30'],
+    'Маска и терапия': ['09:00','10:30','12:00','13:30','15:00','16:30','18:00']
+  };
+
+  const bookedSlots = {
+    '2026-03-29': {
+      'Подстригване': ['10:00','15:00'],
+      'Боядисване': ['11:30'],
+      'Кератинова терапия': ['13:30']
+    },
+    '2026-03-30': {
+      'Подстригване': ['09:00','17:00'],
+      'Трайна завивка': ['12:30'],
+      'Маска и терапия': ['15:00']
+    }
+  };
+
+  function formatDateBG(dateString) {
+    const [y, m, d] = dateString.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
+  function refreshTimeSlots() {
+    const service = serviceSelect.value;
+    const date = dateInput.value;
+
+    timeSelect.innerHTML = '';
+
+    if (!service || !date) {
+      timeSelect.disabled = true;
+      timeSelect.innerHTML = '<option value="">Първо изберете услуга и дата...</option>';
+      slotsInfo.textContent = 'Изберете услуга и дата, за да видите свободните часове.';
+      return;
+    }
+
+    const allSlots = serviceSlots[service] || [];
+    const taken = (bookedSlots[date] && bookedSlots[date][service]) ? bookedSlots[date][service] : [];
+    const available = allSlots.filter(slot => !taken.includes(slot));
+
+    timeSelect.disabled = false;
+
+    if (available.length === 0) {
+      timeSelect.innerHTML = '<option value="">Няма свободни часове за тази дата</option>';
+      timeSelect.disabled = true;
+      slotsInfo.textContent = 'За избраните услуга и дата няма свободни часове. Моля, изберете друга дата.';
+      return;
+    }
+
+    timeSelect.innerHTML = '<option value="" selected disabled>Изберете свободен час...</option>';
+    available.forEach(slot => {
+      const option = document.createElement('option');
+      option.value = slot;
+      option.textContent = slot;
+      timeSelect.appendChild(option);
+    });
+
+    if (taken.length > 0) {
+      slotsInfo.textContent = `Свободни часове за ${service} на ${formatDateBG(date)}. Заети: ${taken.join(', ')}.`;
+    } else {
+      slotsInfo.textContent = `Всички показани часове за ${service} на ${formatDateBG(date)} са свободни.`;
+    }
+  }
+
+  serviceSelect.addEventListener('change', refreshTimeSlots);
+  dateInput.addEventListener('change', refreshTimeSlots);
+
+  bookingForm.addEventListener('submit', function(e) {
     e.preventDefault();
 
     const name = this.querySelector('input[type="text"]').value;
-    const phone = this.querySelector('input[type="tel"]').value;
-    const service = this.querySelector('select').value;
-    const date = this.querySelector('input[type="date"]').value;
-    const time = this.querySelector('input[type="time"]').value;
-    const notes = this.querySelector('textarea').value;
-
-    const rawMessage = `Здравейте! Искам да запазя час:
-Име: ${name}
-Телефон: ${phone}
-Услуга: ${service}
-Дата: ${date}
-Час: ${time}
-Бележки: ${notes || '-'}`;
-    const message = encodeURIComponent(rawMessage);
-    const viberLink = `viber://forward?text=${message}`;
+    const service = serviceSelect.value;
+    const date = dateInput.value;
+    const time = timeSelect.value;
 
     this.style.display = 'none';
-    const successBox = document.getElementById('formSuccess');
-    const manualBtn = document.getElementById('openViberManual');
-    manualBtn.href = viberLink;
-    successBox.style.display = 'block';
-
-    window.location.href = viberLink;
+    document.getElementById('confirmationDetails').textContent = `Получихме заявка за ${service} на ${formatDateBG(date)} в ${time} ч. за ${name}.`;
+    document.getElementById('formSuccess').style.display = 'block';
   });
 </script>
 </body>
