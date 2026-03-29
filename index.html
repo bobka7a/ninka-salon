@@ -177,20 +177,6 @@
   }
   .gallery-item:first-child { grid-row: span 2; aspect-ratio: unset; }
   .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .gallery-placeholder {
-    width: 100%; height: 100%; min-height: 180px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 0.5rem;
-    font-size: 0.82rem; color: #a07060; font-weight: 600;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    transition: opacity 0.3s;
-  }
-  .gallery-placeholder .ph-icon { font-size: 2.2rem; opacity: 0.6; }
-  .gp2 { background: linear-gradient(145deg, #f2b896, #dda87c); }
-  .gp3 { background: linear-gradient(145deg, #e9c4a8, #d4936a); }
-  .gp4 { background: linear-gradient(145deg, #f7d5bb, #e6a888); }
-  .gp5 { background: linear-gradient(145deg, #eed5c0, #d89a70); }
   .gallery-note {
     text-align: center; margin-top: 1.6rem;
     font-size: 0.85rem; color: var(--light-text); font-style: italic;
@@ -241,12 +227,6 @@
     display: none; text-align: center; padding: 1.5rem 0 0;
     color: var(--terracotta); font-weight: 700; font-size: 1.05rem;
   }
-  .template-card {
-    background:#fff9f2; border:1.5px solid #f5d5c0; border-radius:14px; padding:14px;
-    margin-top:12px; text-align:left;
-  }
-  .template-card .label { font-weight:700; color:#6b3a2a; margin-bottom:8px; }
-  .template-card .text { font-size:0.95rem; line-height:1.6; color:#6b3a2a; white-space:pre-line; }
 
   #контакти { background: var(--cream); }
   .contact-grid {
@@ -403,10 +383,21 @@
   <div class="booking-wrapper reveal">
     <form id="bookingForm">
       <div class="form-row">
-        <div class="form-group"><label>Вашето име</label><input type="text" placeholder="Мария Иванова" required></div>
+        <div class="form-group"><label>Вашето име</label><input type="text" placeholder="Мария Иванова" maxlength="50" required></div>
         <div class="form-group"><label>Телефон</label><input type="tel" id="phoneInput" pattern="[0-9]{10}" placeholder="0888123456" required></div>
       </div>
-      <div class="form-group"><label>Желана услуга</label><select id="serviceSelect" required><option value="" disabled selected>Изберете услуга...</option><option value="Подстригване">Подстригване</option><option value="Боядисване">Боядисване</option><option value="Кератинова терапия">Кератинова терапия</option><option value="Сватбена прическа">Сватбена прическа</option><option value="Трайна завивка">Трайна завивка</option><option value="Маска и терапия">Маска и терапия</option></select></div>
+      <div class="form-group">
+        <label>Желана услуга</label>
+        <select id="serviceSelect" required>
+          <option value="" disabled selected>Изберете услуга...</option>
+          <option value="Подстригване">Подстригване</option>
+          <option value="Боядисване">Боядисване</option>
+          <option value="Кератинова терапия">Кератинова терапия</option>
+          <option value="Сватбена прическа">Сватбена прическа</option>
+          <option value="Трайна завивка">Трайна завивка</option>
+          <option value="Маска и терапия">Маска и терапия</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>Дата</label><input type="date" required></div>
         <div class="form-group"><label>Свободни часове</label><select id="timeSelect" required disabled><option value="" selected>Първо изберете услуга и дата...</option></select></div>
@@ -503,7 +494,9 @@
 <script>
   const reveals = document.querySelectorAll('.reveal');
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
   }, { threshold: 0.12 });
   reveals.forEach(el => observer.observe(el));
 
@@ -590,69 +583,34 @@
   dateInput.addEventListener('change', refreshTimeSlots);
 
   bookingForm.addEventListener('submit', function(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  const data = {
-    name: this.querySelector('input[type="text"]').value,
-    phone: this.querySelector('input[type="tel"]').value,
-    service: serviceSelect.value,
-    date: dateInput.value,
-    time: timeSelect.value,
-    notes: this.querySelector('textarea').value
-  };
+    const data = {
+      name: this.querySelector('input[type="text"]').value,
+      phone: this.querySelector('input[type="tel"]').value,
+      service: serviceSelect.value,
+      date: dateInput.value,
+      time: timeSelect.value,
+      notes: this.querySelector('textarea').value
+    };
 
-  fetch("https://script.google.com/macros/s/AKfycby7vlS5PQgXkNDxDmgUktCF0iTeGDra1xSHYxZ2592nMiuxfbTq2LJIKFZqIfrPHTjuAg/exec", {
-    method: "POST",
-    body: JSON.stringify(data)
-  })
-  .then(() => {
-    this.style.display = 'none';
-    document.getElementById('confirmationDetails').textContent =
-      `Получихме заявка за ${data.service} на ${formatDateBG(data.date)} в ${data.time} ч. за ${data.name}.`;
-    document.getElementById('formSuccess').style.display = 'block';
-  })
-  .catch(() => {
-    alert("Грешка при изпращане. Опитайте отново.");
-  });
-});
-function doPost(e) {
-  
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-
-  sheet.appendRow([
-    data.name,
-    data.phone,
-    data.service,
-    data.date,
-    data.time,
-    data.notes,
-    new Date()
-  ]);
-
-  MailApp.sendEmail({
-    to: "cskafen@gmail.com",
-    subject: "Нова резервация - Прическата на Нинка",
-    htmlBody:
-      "<b>Име:</b> " + data.name + "<br>" +
-      "<b>Телефон:</b> " + data.phone + "<br>" +
-      "<b>Услуга:</b> " + data.service + "<br>" +
-      "<b>Дата:</b> " + data.date + "<br>" +
-      "<b>Час:</b> " + data.time + "<br>" +
-      "<b>Бележки:</b> " + data.notes
-  });
-
-  return ContentService.createTextOutput("OK");
-}
-  
-    const name = this.querySelector('input[type="text"]').value;
-    const service = serviceSelect.value;
-    const date = dateInput.value;
-    const time = timeSelect.value;
-
-    this.style.display = 'none';
-    document.getElementById('confirmationDetails').textContent = `Получихме заявка за ${service} на ${formatDateBG(date)} в ${time} ч. за ${name}.`;
-    document.getElementById('formSuccess').style.display = 'block';
+    fetch('https://script.google.com/macros/s/AKfycby7vlS5PQgXkNDxDmgUktCF0iTeGDra1xSHYxZ2592nMiuxfbTq2LJIKFZqIfrPHTjuAg/exec', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.text())
+    .then(() => {
+      this.style.display = 'none';
+      document.getElementById('confirmationDetails').textContent =
+        `Получихме заявка за ${data.service} на ${formatDateBG(data.date)} в ${data.time} ч. за ${data.name}.`;
+      document.getElementById('formSuccess').style.display = 'block';
+    })
+    .catch(() => {
+      alert('Грешка при изпращане. Опитайте отново.');
+    });
   });
 </script>
 </body>
