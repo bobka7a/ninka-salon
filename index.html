@@ -590,8 +590,61 @@
   dateInput.addEventListener('change', refreshTimeSlots);
 
   bookingForm.addEventListener('submit', function(e) {
-    e.preventDefault();
+  e.preventDefault();
 
+  const data = {
+    name: this.querySelector('input[type="text"]').value,
+    phone: this.querySelector('input[type="tel"]').value,
+    service: serviceSelect.value,
+    date: dateInput.value,
+    time: timeSelect.value,
+    notes: this.querySelector('textarea').value
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycby7vlS5PQgXkNDxDmgUktCF0iTeGDra1xSHYxZ2592nMiuxfbTq2LJIKFZqIfrPHTjuAg/exec", {
+    method: "POST",
+    body: JSON.stringify(data)
+  })
+  .then(() => {
+    this.style.display = 'none';
+    document.getElementById('confirmationDetails').textContent =
+      `Получихме заявка за ${data.service} на ${formatDateBG(data.date)} в ${data.time} ч. за ${data.name}.`;
+    document.getElementById('formSuccess').style.display = 'block';
+  })
+  .catch(() => {
+    alert("Грешка при изпращане. Опитайте отново.");
+  });
+});
+function doPost(e) {
+  
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+
+  sheet.appendRow([
+    data.name,
+    data.phone,
+    data.service,
+    data.date,
+    data.time,
+    data.notes,
+    new Date()
+  ]);
+
+  MailApp.sendEmail({
+    to: "cskafen@gmail.com",
+    subject: "Нова резервация - Прическата на Нинка",
+    htmlBody:
+      "<b>Име:</b> " + data.name + "<br>" +
+      "<b>Телефон:</b> " + data.phone + "<br>" +
+      "<b>Услуга:</b> " + data.service + "<br>" +
+      "<b>Дата:</b> " + data.date + "<br>" +
+      "<b>Час:</b> " + data.time + "<br>" +
+      "<b>Бележки:</b> " + data.notes
+  });
+
+  return ContentService.createTextOutput("OK");
+}
+  
     const name = this.querySelector('input[type="text"]').value;
     const service = serviceSelect.value;
     const date = dateInput.value;
